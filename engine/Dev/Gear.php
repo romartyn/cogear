@@ -132,4 +132,43 @@ class Dev_Gear extends Gear {
         return $microtime;
     }
 
+    /**
+     * Beatiful styling of vars
+     * @static
+     */
+    public static function varDump() {
+        $args = func_get_args();
+
+        if(count($args))
+            return;
+        $out = '';
+        foreach($args as $var) {
+            $out .= self::_dump($var)."\n";
+        }
+        return HTML::paired_tag('pre', $out, array('class'=>'var-dump'));
+    }
+
+    protected static function _dump($var) {
+        switch($var) {
+            case is_null($var):
+                return HTML::paired_tag('small','NULL');
+
+            case is_float($var):
+                return HTML::paired_tag('small',t('float'));
+
+            case is_bool($var):
+                return HTML::paired_tag('small',t('boolean')).HTML::paired_tag('span',(string)$var);
+
+            case is_string($var):
+                //@todo need UTF8 encoding method in HTML class
+                return HTML::paired_tag('small',t('string')).HTML::paired_tag('span',htmlspecialchars($var,ENT_NOQUOTES));
+
+            case is_resource($var):
+                return HTML::paired_tag('small', t('resource')).HTML::paired_tag('span', get_resource_type($var));
+
+            case is_array($var):
+                return HTML::paired_tag('small',t('array')).HTML::paired_tag('span','('.count($var).')').self::dumpArray($var);
+        }
+    }
+
 }

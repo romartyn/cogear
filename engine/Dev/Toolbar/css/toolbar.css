@@ -1,0 +1,18 @@
+/**
+ * File: toolbar
+ * Author: jilizart
+ * Date: 03.08.11
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+#toolbar {
+    position: absolute;
+    top: 0;
+    right: 30px;
+    width: 600px;
+    height: 26px;
+    background-color: #fcfcfc;
+}
+
+#toolbar .inline-tabs li {
+    display: inline;
+}
