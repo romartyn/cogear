@@ -43,18 +43,18 @@ class Callback extends Cogearable{
      * @param   array   $args
      * @return  boolean
      */
-    public function call($args = array()){
+    public function call(&$args = array()){
         if(!is_callable($this->callback)) return NULL;
         $args = array_merge_recursive($args,$this->args);
-        return call_user_func_array($this->callback, $args);
+        return call_user_func_array($this->callback,$args);
     }
     /**
      * Set args
      * 
      * @param array $args 
      */
-    public function setArgs($args) {
-        $this->args = $args;
+    public function setArgs(&$args) {
+        $this->args =& $args;
     }
 
     /**
@@ -105,11 +105,12 @@ class Callback extends Cogearable{
      * @return  object
      */
     public static function fetchObject($class) {
-        $element = lcfirst($class);
+        $element = ucfirst($class);
+        $cogear = getInstance();
         if (strpos($class, '_Gear')) {
-            $gear_name = str_replace('_Gear', '', $class);
-            if ($this->gears->$gear_name) {
-                return $this->gears->$gear_name;
+            $gear_name = strtolower(str_replace('_Gear', '', $class));
+            if ($cogear->$gear_name) {
+                return $cogear->$gear_name;
             }
             return new $class;
         } elseif (isset($cogear->$element)) {

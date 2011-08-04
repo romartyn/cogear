@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Messages gear
  *
@@ -19,23 +20,17 @@ class Messages_Gear extends Gear {
     protected $name = 'Messages';
     protected $description = 'Handle with messages dialogs and windows.';
     protected $order = 100;
-    protected $template = 'messages.window';
+    protected $template = 'Messages.window';
     protected $version = '0.1';
     const INFO = 0;
     const DIALOG = 1;
     const AJAX = 2;
-
-    public function index($action = NULL, $subaction = NULL){
-        info('asdasd');
-        success('asdasd');
-        error('asdasd');
-    }
     /**
      * Init
      */
     public function init() {
         parent::init();
-        hook('done', array($this, 'showFlash'));
+        hook('done', array($this, 'finish'));
     }
 
     /**
@@ -52,7 +47,7 @@ class Messages_Gear extends Gear {
         $tpl->content = $content;
         $tpl->class = $class;
         $tpl->type = $type ? $type : self::INFO;
-        inject('content', $tpl->render(),0);
+        prepend('content', $tpl->render());
     }
 
     /**
@@ -65,22 +60,24 @@ class Messages_Gear extends Gear {
      */
     public function flash($content = NULL, $title = NULL, $class = 'info', $type = NULL) {
         $data = func_get_args();
-        $cogear = getInstance();
-        $cogear->session->messages OR $cogear->session->messages = new Core_ArrayObject();
-        $cogear->session->messages->append($data);
+        $this->session->messages OR $this->session->messages = new Core_ArrayObject();
+        $this->session->messages->append($data);
     }
 
     /**
      * Show flashed messages
      */
-    public function showFlash() {
-        $cogear = getInstance();
-        if ($cogear->session->messages) {
-            foreach ($cogear->session->messages as $offset => $data) {
+    public function finish() {
+        if ($this->session->messages) {
+            foreach ($this->session->messages as $offset => $data) {
                 call_user_func_array(array($this, 'show'), $data);
             }
-            $cogear->session->destroy('messages');
+            $this->session->destroy('messages');
         }
+        if (config('messages.type', 'plain') == 'pop') {
+            inline_js('$(document).ready(function(){$(".msg").message();})');
+        }
+        inline_js("$(document).ready(function(){window.Messenger.render()});");
     }
 
 }

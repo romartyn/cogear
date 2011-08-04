@@ -1,11 +1,17 @@
-#header{
-    height: 150px;
-
+a {
+    color: #2B587A;
 }
-#header #logo {
-    background: url(../images/logo.png) no-repeat;
+a.edit{
+    text-decoration: none;
+    color: #ccc;
+    font-size: 12px;
 }
-#header #logo h1{
-    font-size: 90px;
-    text-indent: -9999px;
+a.edit:hover{
+    color: #959595;
+}
+.fl_r{
+    float: right;
+}
+.fl_l{
+    float: left;
 }

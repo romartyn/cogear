@@ -11,7 +11,7 @@
  * @subpackage
  * @version		$Id$
  */
-class Form_Object extends Options {
+class Form_Object extends Object {
 
     protected $name;
     protected $prefix = 'form';
@@ -23,7 +23,8 @@ class Form_Object extends Options {
     public $request;
     protected $is_ajaxed;
     protected $initialized;
-    protected $object;
+    public $tab_opened;
+    public $code;
     /**
      * Elements config
      * @var array
@@ -43,6 +44,7 @@ class Form_Object extends Options {
         'image' => 'Form_Element_Image',
         'span' => 'Form_Element_Span',
         'div' => 'Form_Element_Div',
+        'tab' => 'Form_Element_Tab',
     );
     protected $callback;
     /**
@@ -72,9 +74,12 @@ class Form_Object extends Options {
                 $options = $config;
             }
         }
+        else {
+            $options = Core_ArrayObject::transform($options);
+        }
         parent::__construct($options,Options::SELF);
     }
-
+    
     /**
      * Add element
      * 
@@ -87,7 +92,7 @@ class Form_Object extends Options {
         $config->name = $name;
         $config->form = $this;
         if ($config->access === FALSE) {
-            continue;
+            return;
         }
         if (isset(self::$types[$config->type]) && class_exists(self::$types[$config->type])) {
             $this->elements->$name = new self::$types[$config->type]($config);
@@ -103,7 +108,7 @@ class Form_Object extends Options {
         if ($this->initialized)
             return;
         event('form.init', $this);
-        event('form.init.' . $this->name, $this);
+        event('form.' . $this->name.'.init', $this);
         $this->is_ajaxed = isset($_REQUEST['form']) && $_REQUEST['form'] == $this->name;
         $elements = array();
         foreach ($this->elements as $name => $config) {
@@ -126,13 +131,12 @@ class Form_Object extends Options {
      * 
      * @param object $data 
      */
-    public function object($data = NULL) {
-        if ($data) {
-            $this->object = $data;
-            $this->setValues($this->object);
-        } else {
-            return $this->object;
-        }
+    public function attach($data) {
+        $data && $this->setValues($data);
+        parent::attach($data);
+        event('form.attach',$this);
+        event('form.'.$this->name.'.attach',$this);
+        $this->init();
     }
 
     /**
@@ -141,9 +145,8 @@ class Form_Object extends Options {
      * @param array $data 
      */
     public function setValues($data) {
-        $this->init();
         foreach ($data as $key => $value) {
-            $this->elements->$key && $this->elements->$key->setValue($value);
+            $this->elements->$key && $this->elements->$key->value = $value;
         }
     }
 
@@ -161,9 +164,10 @@ class Form_Object extends Options {
         $is_valid = TRUE;
         if (sizeof($this->request) > 0) {
             foreach ($this->elements as $name => $element) {
-                if ($value = $element->result()) {
+                $value = $element->result();
+                if ($value !== FALSE) {
                     $result[$name] = $value;
-                } elseif (FALSE === $value) {
+                } else {
                     $is_valid = FALSE;
                 }
             }
@@ -213,9 +217,9 @@ class Form_Object extends Options {
             'class' => 'form' . ($this->ajax ? ' ajaxed' : ''),
         );
         $tpl->elements = $this->elements;
-        $output = $tpl->render();
-        event('form.render.after', $this, &$output);
-        event('form.' . $this->name . '.render.after', $this, &$output);
-        return $output;
+        $this->code = $tpl->render();
+        event('form.render.after', $this);
+        event('form.' . $this->name . '.render.after', $this);
+        return $this->code;
     }
 }

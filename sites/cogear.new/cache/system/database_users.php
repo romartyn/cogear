@@ -8,10 +8,14 @@ return array (
     'hash' => 'varchar(255)',
     'email' => 'varchar(255)',
     'name' => 'varchar(255)',
-    'user_group' => 'int(3)',
+    'role' => 'int(3)',
     'avatar' => 'varchar(255)',
     'validation_code' => 'varchar(255)',
     'is_valid' => 'tinyint(1)',
   ),
   'ttl' => NULL,
+  'tags' => 
+  array (
+    0 => 'db.fields',
+  ),
 );

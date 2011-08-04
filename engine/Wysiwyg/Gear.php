@@ -17,6 +17,7 @@ class Wysiwyg_Gear extends Gear {
     protected $description = 'Visual editors manager.';
     public static $editors = array(
         'redactor' => 'Redactor_Editor',
+        'editor' => 'Wysiwyg_Editor',
     );
     protected $order = -10;
 
@@ -25,8 +26,7 @@ class Wysiwyg_Gear extends Gear {
      */
     public function init() {
         parent::init();
-        hook('menu.admin.sidebar', array($this, 'adminMenuLink'));
-        Form::$types['textarea'] = self::$editors[config('wysiwyg.editor', 'redactor')];
+        Form::$types['editor'] = self::$editors[config('wysiwyg.editor', 'redactor')];
     }
 
     /**
@@ -34,9 +34,13 @@ class Wysiwyg_Gear extends Gear {
      * 
      * @param type $structure 
      */
-    public function adminMenuLink($menu) {
-        $root = Url::gear('admin');
-        $menu['20'] = new Menu_Item($root . 'wysiwyg', icon('text_padding_bottom') . t('Editor'));
+    public function menu($name,&$menu) {
+        switch($name){
+            case 'admin':
+                $menu->{'wysiwyg'} = t('Editor');
+                $menu->{'wysiwyg'}->order = 200;
+                break;
+        }
     }
 
     /**
@@ -48,7 +52,7 @@ class Wysiwyg_Gear extends Gear {
         $options->editor = config('wysiwyg.editor');
         $form->init();
         $form->elements->type->setValues(self::$editors);
-        $form->object($options);
+        $form->attach($options);
         if($result = $form->result()){
             if(isset(self::$editors[$result['type']])){
                 cogear()->set('wysiwyg.editor', $result['type']);

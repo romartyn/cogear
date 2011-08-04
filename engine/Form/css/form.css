@@ -1,7 +1,7 @@
 .form {
     font: 1em Trebuchet MS,Myriad Pro;
 }
-.form select, .form input[type="text"],.form input[type="password"],.form input[type="search"],textarea{
+.form select, .form input[type="text"],.form input[type="password"],.form input[type="search"]{
     border: 1px solid #DFDFDF;
     padding: 3px 4px;
     font-size: 1.7em;
@@ -31,6 +31,10 @@
 }
 .form div.checkbox label{
     display: inline;
+}
+.form div.checkbox input[type=checkbox]{
+    float: left;
+    margin: 0 5px 0 0;
 }
 .form div.form-element.inline label{
     display: inline;
@@ -90,4 +94,7 @@ div.image-preview a.delete{
 }
 div.image-preview a.delete:hover{
     color: #CCC;
+}
+form div.form-element.tab{
+    display: none;
 }

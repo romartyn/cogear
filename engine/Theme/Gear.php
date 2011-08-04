@@ -13,10 +13,9 @@
  */
 class Theme_Gear extends Gear {
 
-    protected $name = 'Theme gear';
+    protected $name = 'Theme';
     protected $description = 'Manage themes';
     protected $type = Gear::CORE;
-    protected $package = '';
     protected $order = -1000;
     public $current;
     public $regions;
@@ -26,10 +25,9 @@ class Theme_Gear extends Gear {
      * Init
      */
     public function init() {
-        $cogear = getInstance();
-        $this->regions = new Stack('theme.regions');
+        $this->regions = new Core_ArrayObject();
         hook('gear.request', array($this, 'handleGearRequest'));
-        if ($favicon = $cogear->get('theme.favicon')) {
+        if ($favicon = config('theme.favicon')) {
             hook('theme.head.meta.after', array($this, 'renderFavicon'));
         }
         parent::init();
@@ -62,6 +60,7 @@ class Theme_Gear extends Gear {
         $this->current = new $class();
         $this->current->init();
         $this->current->activate();
+		$theme = strtolower($theme);
         cogear()->gears->$theme = $this->current;
     }
 
@@ -70,8 +69,7 @@ class Theme_Gear extends Gear {
      * @param type $theme 
      */
     public function set($theme) {
-        $cogear = getInstance();
-        $cogear->set('theme.current', $theme);
+        cogear()->set('theme.current', $theme);
     }
 
     /**
@@ -109,7 +107,7 @@ class Theme_Gear extends Gear {
     public function renderRegion($name){
             $this->regions->$name OR $this->regions->$name = new Theme_Region();
             hook($name,array($this,'showRegion'),NULL,$name);
-            event($name);
+            return event($name);
     }
     
     /**
@@ -120,7 +118,8 @@ class Theme_Gear extends Gear {
      * @param string $name 
      */
     public function showRegion($name){
-         echo $this->regions->$name->render();
+        $this->regions->$name === NULL && $this->regions->$name = new Theme_Region();
+        echo $this->regions->$name->render();
     }
 }
 
@@ -144,5 +143,5 @@ function inject($name, $value, $position = 0) {
 
 function theme($place) {
     $cogear = getInstance();
-    $cogear->theme->renderRegion($place);
+    return $cogear->theme->renderRegion($place);
 }

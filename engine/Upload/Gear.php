@@ -17,27 +17,21 @@ class Upload_Gear extends Gear {
     protected $description = 'Upload files and images';
     protected $settings = array('theme'=>'Theme_Splash');
 
-    public function index($action = NULL, $subaction = NULL) {
+    public function index($action = NULL) {
         switch ($action) {
             case 'file':
                  $tpl = new Template('Upload.file');
                  $tpl->show();
-//                $file = new Upload_File('myfile', array('path' => cogear()->user->getDir(), 'maxsize' => '100'));
-//                append('content', $file->render());
                 break;
             case 'image':
-
+                $image = new Upload_Image('file',array('preset'=>'post','path'=>UPLOADS.DS.'posts'.DS.date('Y/m/d')));
+                if($result = $image->upload()){
+                    exit(HTML::img($result));
+                }
                 break;
             default:
                 append('content', HTML::a(Url::gear('upload') . '/file?iframe', t('Upload'), array('rel' => 'modal', 'class' => 'button')));
         }
-    }
-
-    /**
-     * Upload image
-     */
-    public function image_action() {
-        
     }
 }
 

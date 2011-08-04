@@ -13,7 +13,7 @@
 class GoBack_Gear extends Gear {
 
     protected $name = 'GoBack';
-    protected $description = 'Show "← Go Back button where it is needed"';
+    protected $description = 'Show "← Go Back" button where it is needed';
     protected $type = Gear::MODULE;
     protected $package = 'Utilities';
 
@@ -29,8 +29,7 @@ class GoBack_Gear extends Gear {
      * Show GoBack button hook
      */
     public function showGoBackButton(){
-        $cogear = getInstance();
-        $link = $cogear->session->history->getIterator()->current();
+        $link = $this->session->history->getIterator()->current();
         append('content',HTML::a($link,t("← Go back"),array('class'=>'button goback')));
     }
 }

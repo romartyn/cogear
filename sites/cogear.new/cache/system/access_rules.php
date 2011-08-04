@@ -1,28 +1,16 @@
 <?php 
 return array (
   'value' => 
-  array (
-    1 => 'admin',
-    2 => 'admin site',
-    25 => 'benchmark',
-    30 => 'dev',
-    26 => 'developer',
-    27 => 'development',
-    23 => 'elfinder',
-    20 => 'errors',
-    29 => 'loginza',
-    15 => 'pages',
-    18 => 'pages create',
-    24 => 'pages delete',
-    19 => 'pages edit_all',
-    21 => 'test',
-    28 => 'theme',
-    22 => 'upload',
-    14 => 'user',
-    16 => 'user edit_all',
-    17 => 'user edit_login',
-    3 => 'user register',
-  ),
+  Core_ArrayObject::__set_state(array(
+     'admin' => true,
+     'development' => true,
+     'user edit_all' => true,
+     'comments post' => true,
+     'user_edit_realname' => true,
+     'user edit_login' => true,
+     'users delete_all' => true,
+     'pages edit_all' => true,
+  )),
   'ttl' => NULL,
   'tags' => 
   array (

@@ -19,43 +19,35 @@ class Gears_Gear extends Gear {
     protected $package = 'Gears';
     protected $order = 0;
 
-    /**
-     * Init
-     */
-    public function init() {
-        parent::init();
-        $cogear = getInstance();
+    public function menu($name, &$menu) {
+        switch ($name) {
+            case 'admin':
+                $menu->{'gears'} = t('Gears');
+                break;
+            case 'tabs_gears':
+                $all_gears = $this->getAllGears();
+                $active_gears = $this->getActiveGears();
+                $inactive_gears = array_diff($all_gears, $active_gears);
+                $all_count = sizeof($all_gears);
+                $active_count = sizeof($active_gears);
+                $inactive_count = sizeof($inactive_gears);
+                $menu->{'/'} = t('Active') . ' (' . $active_count . ')';
+                $menu->{'all'} = t('All') . ' (' . $all_count . ')';
+                $menu->{'inactive'} = t('Inactive') . ' (' . $inactive_count . ')';
+                $menu->{'new'} = t('New');
+                $menu->{'updates'} = t('Updates');
+                $menu->{'add'} = t('Add');
+                break;
+        }
     }
 
-    /**
-     * Default dispatcher
-     * 
-     * @param string $type 
-     */
-    public function index($action = '', $subaction = NULL) {
-        
-    }
-
-    public function admin($action = 'index') {
+    public function admin($action = 'active') {
+        new Menu_Tabs('gears', Url::gear('admin') . 'gears');
         d('Admin Gears');
-        $cogear = getInstance();
-        $all_gears = $cogear->getAllGears();
-        $active_gears = $cogear->getActiveGears();
+        $all_gears = $this->getAllGears();
+        $active_gears = $this->getActiveGears();
         $inactive_gears = array_diff($all_gears, $active_gears);
-        $all_count = sizeof($all_gears);
-        $active_count = sizeof($active_gears);
-        $inactive_count = sizeof($inactive_gears);
-        $top_menu = Template::getGlobal('top_menu');
-        $root = Url::gear('admin');
-        $top_menu->{$root . 'gears'} = t('Active');
-        $top_menu->{$root . 'gears'}->count = $active_count;
-        $top_menu->{$root . 'gears/all'} = t('All');
-        $top_menu->{$root . 'gears/all'}->count = $all_count;
-        $top_menu->{$root . 'gears/inactive'} = t('Inactive');
-        $top_menu->{$root . 'gears/inactive'}->count = $inactive_count;
-        $top_menu->{$root . 'gears/new'} = t('New');
-        $top_menu->{$root . 'gears/updates'} = t('Updates');
-        $top_menu->{$root . 'gears/add'} = t('Add');
+
         $doaction = NULL;
         if (!empty($_REQUEST['action-top']))
             $doaction = $_REQUEST['action-top'];
@@ -80,6 +72,7 @@ class Gears_Gear extends Gear {
         }
         switch ($action) {
             case 'index':
+            case 'active':
                 $gears = array();
                 foreach ($active_gears as $gear => $class) {
                     if (class_exists($class)) {
@@ -141,15 +134,57 @@ class Gears_Gear extends Gear {
     }
 
     /**
+     * Gears dispatcher
+     * 
+     * @param string $action
+     * @param string $gear 
+     */
+    public function index($action=NULL, $gear = NULL) {
+        if (!access('admin gears')) {
+            Ajax::denied();
+        }
+        switch ($action) {
+            case 'activate':
+                cogear()->activate($gear);
+                $tpl = new Template('Gears.item');
+                $tpl->assign($this->$gear->info());
+                Ajax::json(array(
+                    'items' => array(
+                        array(
+                            'id' => 'gear-' . $gear,
+                            'action' => 'replace',
+                            'code' => $tpl->render(),
+                        )
+                    )
+                ));
+                break;
+            case 'deactivate':
+                cogear()->deactivate($gear);
+                $tpl = new Template('Gears.item');
+                $name = strtolower($gear);
+                $tpl->assign($this->$name->info());
+                Ajax::json(array(
+                    'items' => array(
+                        array(
+                            'id' => 'gear-' . $gear,
+                            'action' => 'replace',
+                            'code' => $tpl->render(),
+                        )
+                    )
+                ));
+                break;
+        }
+    }
+
+    /**
      * Activate gears
      * 
      * @param   array   $gears
      */
     private function activate_gears($gears) {
-        $cogear = getInstance();
         $result = array();
         foreach ($gears as $gear) {
-            $cogear->activate($gear);
+            $this->activate($gear);
             $result[] = t($gear, 'Gears');
         }
         $result && flash_success(t('Following gears were activated: ') . '<b>' . implode('</b>, <b>', $result) . '</b>.');
@@ -161,10 +196,9 @@ class Gears_Gear extends Gear {
      * @param   array   $gears
      */
     private function deactivate_gears($gears) {
-        $cogear = getInstance();
         $result = array();
         foreach ($gears as $gear) {
-            $cogear->deactivate($gear);
+            $this->deactivate($gear);
             $result[] = t($gear, 'Gears');
         }
         $result && flash_success(t('Following gears were deactivated: ') . '<b>' . implode('</b>, <b>', $result) . '</b>.');
@@ -176,10 +210,9 @@ class Gears_Gear extends Gear {
      * @param   array   $gears
      */
     private function update_gears($gears) {
-        $cogear = getInstance();
         $result = array();
         foreach ($gears as $gear) {
-            $cogear->update($gear);
+            $this->update($gear);
             $result[] = t($gear, 'Gears');
         }
         $result && flash_success(t('Following gears were updated: ') . '<b>' . implode('</b>, <b>', $result) . '</b>.');

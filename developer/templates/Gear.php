@@ -23,7 +23,6 @@ class _Gear extends Gear {
      */
     public function init() {
         parent::init();
-        $cogear = getInstance();
     }
     /**
      * Default dispatcher

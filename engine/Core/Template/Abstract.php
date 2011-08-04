@@ -26,12 +26,12 @@ class Template_Abstract extends Options {
      */
     public function __construct($name) {
         $this->name = $name;
-        $this->path = Gear::preparePath($this->name, 'templates') . EXT;
-        if (file_exists($this->path)) {
-            $this->code = file_get_contents($this->path);
-        } else {
-            Message::error(t('Template <b>%s</b> is not found by path <u>%s</u>.', 'Errors', $this->name, $this->path));
-        }
+//        $this->path = Gear::preparePath($this->name, 'templates') . EXT;
+//        if (file_exists($this->path)) {
+//            $this->code = file_get_contents($this->path);
+//        } else {
+//            exit(t('Template <b>%s</b> is not found by path <u>%s</u>.', 'Errors', $this->name, $this->path));
+//        }
     }
 
     /**
@@ -59,6 +59,13 @@ class Template_Abstract extends Options {
         }
         else
             $this->vars[$name] = $value;
+    }
+    
+    /**
+     * Reset vaiables
+     */
+    public function reset(){
+        $this->vars = array();
     }
 
     /**
@@ -176,6 +183,9 @@ class Template_Abstract extends Options {
      * @return  string
      */
     public function render() {
+        if(!file_exists($this->path)){
+            exit(t('Template <b>%s</b> is not found by path <u>%s</u>.', 'Errors', $this->name, $this->path));
+        }
         event('template.render', $this);
         ob_start();
         self::$global_vars && extract(self::$global_vars);

@@ -6,7 +6,7 @@
  *
  *
  * @author		Dmitriy Belyaev <admin@cogear.ru>
- * @copyright		Copyright (c) 2010, Dmitriy Belyaev
+ * @copyright		Copyright (c) 2011, Dmitriy Belyaev
  * @license		http://cogear.ru/license.html
  * @link		http://cogear.ru
  * @package		Core
@@ -64,6 +64,11 @@ final class Cogear implements Interface_Singleton {
      * @var boolean 
      */
     private $write_config = FALSE;
+    
+    /**
+     * Stop current event executrion flag
+     */
+    public $stop_event = FALSE;
 
     const GEAR = 'Gear';
 
@@ -114,17 +119,20 @@ final class Cogear implements Interface_Singleton {
      * Run event
      * @param string $name
      * @param mixed $arg_1
-     * …
+     * вЂ¦
      * @param mixed $arg_N
      * @return  boolean
      */
     public function event($name) {
-        $result = TRUE;
+        $result = new Core_ArrayObject();
         $args = func_get_args();
         $args = array_slice($args, 1);
         if ($this->events->$name) {
             foreach ($this->events->$name as $callback) {
-                $result && FALSE === $callback->call(&$args) && $result = FALSE;
+                 if($this->events->$name->is_stopped()) continue;
+                 if($data = $callback->call($args)){
+                     $result->append($data);
+                 }
             }
         }
         return $result;
@@ -154,12 +162,22 @@ final class Cogear implements Interface_Singleton {
      * @param   string  $default
      * @return  string
      */
-    public function get($name, $default = NULL) {
+    public function get($name = NULL, $default = NULL) {
+        if($name === NULL){
+            return $this->config;
+        }
         $pieces = explode('.', $name);
+        $size = sizeof($pieces);
         $current = $this->config;
+        $depth = 1;
         foreach ($pieces as $piece) {
-            if ($current->$piece && $current->$piece instanceof Core_ArrayObject) {
-                $current = $current->$piece;
+            if ($current->$piece) {
+                if($depth < $size && $current->$piece instanceof Core_ArrayObject){
+                    $current = $current->$piece;
+                    $depth++;
+                    continue;
+                }
+                return $current->$piece;
             } else {
                 return $current->$piece ? $current->$piece : $default;
             }
@@ -203,7 +221,8 @@ final class Cogear implements Interface_Singleton {
     public function loadGears() {
         if ($this->gears_are_loaded)
             return;
-        if (!$this->all_gears = $this->system_cache->read('gears/all')) {
+        hook('exit',array($this,'save'));
+        if (DEVELOPMENT OR !$this->all_gears = $this->system_cache->read('gears/all',TRUE)) {
             $this->all_gears = array();
             if ($gears_paths = array_merge(find('*' . DS . self::GEAR . EXT), find('*' . DS . '*' . DS . self::GEAR . EXT))) {
                 foreach ($gears_paths as $path) {
@@ -214,6 +233,7 @@ final class Cogear implements Interface_Singleton {
                     }
                     $reflection = new ReflectionClass($class);
                     if (!$reflection->isAbstract() && $reflection->isSubclassOf(self::GEAR)) {
+                        $gear = strtolower($gear);
                         $this->all_gears[$gear] = $class;
                     }
                 }
@@ -224,12 +244,10 @@ final class Cogear implements Interface_Singleton {
         $this->active_gears = $this->system_cache->read('gears/active', TRUE);
         foreach ($this->all_gears as $gear => $class) {
             if (isset($this->active_gears[$gear])) {
-                $gear = strtolower($gear);
                 $this->gears->$gear instanceof Gear OR class_exists($class) && $this->gears->$gear = new $class;
             } elseif (DEVELOPMENT && class_exists($class)) {
                 $object = new $class;
                 if ($object->info('type') == Gear::CORE) {
-                    $gear = strtolower($gear);
                     $this->gears->$gear instanceof Gear OR $this->gears->$gear = $object;
                     $this->active_gears[$gear] = $class;
                     $this->write_gears = TRUE;
@@ -316,6 +334,8 @@ final class Cogear implements Interface_Singleton {
             }
             $object = new $this->all_gears[$gear];
             $object->activate();
+            $this->gears->$gear = $object;
+            $this->gears->$gear->active = TRUE;
             $this->active_gears[$gear] = $this->all_gears[$gear];
             $this->write_gears = TRUE;
         }
@@ -327,9 +347,9 @@ final class Cogear implements Interface_Singleton {
      * @param string $gear
      */
     public function deactivate($gear) {
-        if (isset($this->all_gears[$gear]) && class_exists($this->all_gears[$gear])) {
-            $object = new $this->all_gears[$gear];
-            $object->deactivate();
+        if ($this->gears->$gear) {
+            $this->gears->$gear->active = FALSE;
+            $this->gears->$gear->deactivate();
             if (isset($this->active_gears[$gear])) {
                 unset($this->active_gears[$gear]);
             }
@@ -466,16 +486,16 @@ function cogear() {
 function event() {
     $cogear = getInstance();
     $args = func_get_args();
-    return call_user_func_array(array($cogear, 'event'), &$args);
+    return call_user_func_array(array($cogear, 'event'), $args);
 }
 
 function hook() {
     $cogear = getInstance();
     $args = func_get_args();
-    return call_user_func_array(array($cogear, 'hook'), &$args);
+    return call_user_func_array(array($cogear, 'hook'), $args);
 }
 
-function config($name, $default_value = NULL) {
+function config($name = NULL, $default_value = NULL) {
     $cogear = getInstance();
     return $cogear->get($name, $default_value);
 }

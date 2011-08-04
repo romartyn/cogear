@@ -20,7 +20,6 @@ define('ENGINE', ROOT . DS . 'engine');
 // Gears for all sites
 define('GEARS', ROOT . DS . 'gears');
 define('SITES', ROOT . DS . 'sites');
-define('LIBRARY', ROOT . DS . 'library');
 define('DEFAULT_SITE', SITES . DS . 'default');
 define('PHP_FILE_PREFIX', '<?php ' . "\n");
 define('IGNITE', time());
@@ -61,26 +60,8 @@ function find($file) {
 function debug() {
     echo '<pre>';
     $args = func_get_args();
-//    $tpl = new Template('Core.debug');
-//    $tpl->args = $args;
-//    append('content',$tpl->render());
     call_user_func_array('var_dump', $args);
     echo '</pre>';
-//    info(var_export($args,TRUE));
-}
-
-$aliases = array();
-
-/**
- * Create an alias for class
- *
- * @global array $aliases
- * @param string $from
- * @param string $to
- */
-function alias($from, $to) {
-    global $aliases;
-    $aliases[$from] = $to;
 }
 
 /**
@@ -90,15 +71,9 @@ function alias($from, $to) {
  * @return  boolean
  */
 function autoload($class) {
-    global $aliases;
-    isset($aliases[$class]) && $class = $aliases[$class];
-    $file = str_replace('_', DS, $class) . EXT;
-    static $loaded = array();
-    if (isset($loaded[$class])) {
-        return TRUE;
-    } elseif ($path = find($file)) {
+    $filename = str_replace('_', DS, $class);
+    if ($path = find($filename.EXT)) {
         include $path;
-        $loaded[$class] = $path;
         return TRUE;
     }
     return FALSE;
@@ -108,7 +83,7 @@ function autoload($class) {
 spl_autoload_register('autoload');
 
 $cogear = Cogear::getInstance();
-// Some gears are needed to be preloaded
+// Some root classes are needed to be preloaded
 $cogear->request = new Request();
 // Set host
 $host = $cogear->request->get('HTTP_HOST');
@@ -144,7 +119,7 @@ if (!$options = $cogear->config->cookies) {
     );
 }
 $cogear->router = new Router();
-$cogear->assets = new Assets();
+$cogear->assets = new Harvester();
 $cogear->response = new Response();
 $cogear->session = Session::factory('session', $options);
 // Load current site settings if file exists
@@ -153,5 +128,4 @@ $cogear->config->load(SITE.DS.'config'.EXT);
 $cogear->loadGears();
 event('ignite');
 event('done');
-$cogear->save();
 event('exit');

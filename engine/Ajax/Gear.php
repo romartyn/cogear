@@ -89,9 +89,18 @@ class Ajax_Gear extends Gear {
      */
     public static function json($data) {
         echo json_encode($data);
-        $cogear = getInstance();
-        $cogear->save();
+        event('exit');
+        event('ajax.exit');
         exit();
+    }
+    /**
+     * Send denied response
+     */
+    public static function denied(){
+        self::json(array('message'=>array(
+            'class' => 'error',
+            'body' => t('You don\'t have enough priveleges to execute this procedure.'),
+        )));
     }
 
 }

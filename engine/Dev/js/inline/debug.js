@@ -1,7 +1,5 @@
 $(document).ready(function(){
-    $('#user_cp #dev').mouseover(function(){
-        $('#debug').slideDown('slow').mouseleave(function(){
-            $(this).slideUp('slow');
-        });
-    })
-})
+   $('#debug-link').click(function(){
+        $('#debug').toggle();
+   }); 
+});

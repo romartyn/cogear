@@ -17,29 +17,57 @@ class User_Gear extends Gear {
     protected $description = 'Manage users.';
     protected $order = -10;
     protected $current;
+    protected $roles;
 
     /**
      * Init
      */
     public function init() {
+        $this->router->addRoute('users:maybe', array($this, 'users'));
         parent::init();
         $this->current = new User_Object();
         $this->current->init();
-        hook('menu.admin.sidebar', array($this, 'adminMenuLink'));
-        $user_cp = new Menu('user_cp', 'User.control_panel');
-        hook('before', array($user_cp, 'output'));
-        hook('menu.user_cp', array($this, 'hookControlPanel'));
+        new User_Menu();
+        $this->getRoles();
     }
 
     /**
-     * Hook to add admin menu element
+     * Menu builder
      * 
-     * @param type $structure 
+     * @param string $name
+     * @param object $menu 
      */
-    public function adminMenuLink($menu) {
-        $root = Url::gear('admin');
-        $menu['14'] = new Menu_Item($root . 'user', icon('users', 'fugue') . t('Users'));
-        $menu['14.1'] = new Menu_Item($root . 'user/add', icon('user--plus', 'fugue') . t('Add user'));
+    public function menu($name, $menu) {
+        d('User_CP');
+        switch ($name) {
+            case 'user':
+                $root = Url::gear('user');
+                if ($this->id) {
+                    $menu->{$root} = t('My Profile');
+                    $menu->{'users'} = t('Find users');
+                    $menu->{$root . 'logout'} = t('Logout');
+                    $menu->{$root . 'logout'}->order = 100;
+                } else {
+                    $menu->{$root . 'login'} = t('Login');
+                    $menu->{$root . 'register'} = t('Register');
+                }
+                break;
+            case 'admin':
+                $menu->{'user'} = t('Users');
+                $menu->{'user'}->order = 100;
+                break;
+            case 'tabs_admin_user':
+                $menu->{'/'} = t('List');
+                $menu->{'add'} = t('Add');
+                $menu->{'add'}->class = 'fl_r';
+                break;
+            case 'tabs_user_login':
+                $menu->{'login'} = t('Log in');
+                $menu->{'register'} = t('Register');
+                $menu->{'lostpassword'} = t('Lost password?');
+                break;
+        }
+        d();
     }
 
     /**
@@ -70,7 +98,7 @@ class User_Gear extends Gear {
      * @param   array   $args
      */
     public function __call($name, $args = array()) {
-        return method_exists($this->current, $name) ? call_user_func_array(array($this->current, $name), $args) : parent::__call($name,$args);
+        return method_exists($this->current, $name) ? call_user_func_array(array($this->current, $name), $args) : parent::__call($name, $args);
     }
 
     /**
@@ -82,13 +110,7 @@ class User_Gear extends Gear {
             case 'login':
             case 'register':
             case 'lostpassword':
-                $top_menu = new Menu('User.login', 'Menu.tabs');
-                $root = Url::gear('user');
-                $top_menu->{$root . 'login'} = t('Log in');
-                $top_menu->{$root . 'register'} = t('Register');
-                $top_menu->{$root . 'lostpassword'} = t('Lost password?');
-                append('content', $top_menu->render());
-                break;
+                new Menu_Tabs('user_login', Url::gear('user'));
         }
         switch ($action) {
             case 'login':
@@ -103,14 +125,31 @@ class User_Gear extends Gear {
             case 'register':
                 $this->register_action();
                 break;
+            case 'find':
+                $this->users();
+                break;
+            case 'index':
+            case 'profile':
+                $this->show_action();
+                break;
+            case 'edit':
+                $this->edit_action($subaction);
+                break;
             default:
-                switch ($subaction) {
-                    case 'edit':
-                        $this->edit_action($action);
-                        break;
-                    default:
-                        $this->show_action($action);
-                }
+                $this->show_action($action);
+        }
+    }
+
+    /**
+     * Users list
+     */
+    public function users($action = NULL) {
+        switch ($action) {
+            default:
+                $grid = new Grid('users');
+                $users = new User_Object();
+                $grid->adopt($users->findAll());
+                $grid->show();
         }
     }
 
@@ -119,46 +158,53 @@ class User_Gear extends Gear {
      * 
      * @param string $login
      */
-    public function show_action($login) {
-        $user = new User_Object();
-        $user->where('login', $login);
-        if (!$user->find()) {
-            return _404();
+    public function show_action($id = NULL) {
+        if ($id) {
+            $user = new User_Object();
+            $this->db->where('id',$id);
+            $this->db->or_where('login',$id);
+            if (!$user->find()) {
+                return _404();
+            }
+        } else {
+            $user = $this->current;
         }
         $this->renderUserInfo($user);
     }
-    
+
     /**
      * Render user info
      * 
      * @param object $user 
      */
-    public function renderUserInfo($user){
+    public function renderUserInfo($user) {
         $tpl = new Template('User.profile');
         $tpl->user = $user;
         append('content', $tpl->render());
     }
+
     /**
      * Edit action
      * 
      * @param   string  $login
      */
-    public function edit_action($login) {
+    public function edit_action($id = NULL) {
+        $id OR $id = $this->user->id;
         $user = new User_Object();
-        $user->where('login', $login);
+        $this->db->where('id', $id);
         if (!$user->find()) {
             return _404();
         }
-        if (!access('user edit_all') OR $this->id != $user->id) {
+        if (!access('user edit_all') && $this->id != $user->id) {
             return _403();
         }
         $this->renderUserInfo($user);
         $user = new User_Object();
-        $user->where('login', $login);
+        $user->where('id', $id);
         $user->find();
         $form = new Form('User.profile');
         $user->password = '';
-        $form->object($user->object());
+        $form->attach($user->object);
         if ($form->elements->avatar->is_ajaxed && Ajax::get('action') == 'replace') {
             $user->avatar = '';
             $user->update();
@@ -167,11 +213,15 @@ class User_Gear extends Gear {
             if ($user->login != $result['login']) {
                 $redirect = Url::gear('user') . $result['login'];
             }
-            $user->merge($result);
-            if($result->password){
-                $user->hashPassword();
+            if ($result->delete && access('users delete_all')) {
+                $user->delete();
+                flash_success(t('User <b>%s</b> was deleted!'));
+                redirect(Url::link('/users'));
             }
-            else {
+            $user->merge($result);
+            if ($result->password) {
+                $user->hashPassword();
+            } else {
                 unset($user->password);
             }
             if ($user->update()) {
@@ -179,7 +229,7 @@ class User_Gear extends Gear {
                 flash_success(t('User data saved!'), t('Success'));
                 d();
                 if ($user->id == $this->id) {
-                    $this->store($user->object()->toArray());
+                    $this->store($user->object->toArray());
                 }
                 redirect(Url::gear('user') . $user->login);
             }
@@ -196,12 +246,12 @@ class User_Gear extends Gear {
         }
         $form = new Form('User.login');
         if ($data = $form->result()) {
-            $this->object($data);
+            $this->attach($data);
             $this->hashPassword();
             if ($this->find()) {
                 $data->saveme && $this->remember();
                 $this->login();
-                back();
+                redirect(Url::gear('user'));
             } else {
                 error('Login or password weren\'t found in the database', 'Authentification error');
             }
@@ -214,7 +264,7 @@ class User_Gear extends Gear {
      */
     public function logout_action() {
         $this->logout();
-        back();
+        redirect(Url::link());
     }
 
     /**
@@ -223,7 +273,7 @@ class User_Gear extends Gear {
     public function lostpassword_action() {
         $form = new Form('User.lostpassword');
         if ($data = $form->result()) {
-            $this->object($data);
+            $this->attach($data);
             if ($this->find()) {
 
                 back();
@@ -238,15 +288,16 @@ class User_Gear extends Gear {
      * User registration
      */
     public function register_action() {
-        if (!access('user register')) {
-            return info('You don\'t have an access to registration');
+        if (!config('user.register',TRUE)) {
+            return info('Registration is turned off by site admin');
         }
         if ($this->isLogged()) {
             return info('You are already logged in!', 'Authorization');
         }
         $form = new Form('User.register');
         if ($data = $form->result()) {
-            $this->object($data);
+            $this->attach($data);
+            $this->role = config('user.default.user_group',100);
             $this->hashPassword();
             $this->save();
             info('User was successfully registered! Please, check your email for further instructions.', 'Registration succeed.');
@@ -254,32 +305,51 @@ class User_Gear extends Gear {
         else
             append('content', $form->render());
     }
-
+    /**
+     * Get user roles
+     * 
+     * @return  Core_ArrayObject
+     */
+    public function getRoles(){
+        if($this->roles){
+            return $this->roles;
+        }
+        $this->roles = new Core_ArrayObject(array(
+            0 => 'guest',
+            1 => 'admin',
+            100 => 'user'
+        ));
+        if($extra_groups = $this->system_cache->read('user_roles',TRUE)){
+            $this->roles->mix($extra_groups);
+        }
+        return $this->roles;
+    }
+    /**
+     * Get translated roles list
+     * 
+     * @return array
+     */
+    public function getRolesList(){
+        $roles = array();
+        foreach($this->roles as $id=>$role){
+            $roles[$id] = t($role,'User Roles');
+        }
+        return $roles;
+    }
     /**
      * Administrate users
      * 
      * @param string $action 
      */
     public function admin($action = '') {
-        $top_menu = Template::getGlobal('top_menu');
-        $root = Url::gear('admin') . 'user/';
-        $top_menu->{$root} = t('List');
-        $top_menu->{$root . 'add'} = t('Add');
-
+        new Menu_Tabs('admin_user', Url::gear('admin').'user');
         switch ($action) {
             case 'add':
                 $this->admin_add();
                 break;
             default:
-                $this->admin_list();
+                $this->users();
         }
-    }
-
-    /**
-     * Show list of users
-     */
-    public function admin_list() {
-        
     }
 
     /**
@@ -289,29 +359,13 @@ class User_Gear extends Gear {
         $form = new Form('User.register');
         if ($data = $form->result()) {
             $user = new User_Object(FALSE);
-            $user->object($data);
+            $user->attach($data);
             $user->hashPassword();
             $user->save();
             info('User was successfully registered!', 'Registration succeed.');
         }
         else
             append('content', $form->render());
-    }
-
-    /**
-     * Hook user control panel
-     */
-    public function hookControlPanel($cp) {
-        d('User_CP');
-        if ($this->id) {
-            $cp->{Url::gear('user') . $this->login} = $this->getAvatar()->getSize('24x24') . $this->getName();
-            $cp->{Url::gear('user') . 'logout'} = icon('control-power', 'fugue') . t('Logout');
-            $cp->{Url::gear('user') . 'logout'}->order = 100;
-        } else {
-            $cp->{Url::gear('user') . 'login'} = t('Login');
-            $cp->{Url::gear('user') . 'register'} = t('Register');
-        }
-        d();
     }
 
 }

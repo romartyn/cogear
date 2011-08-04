@@ -13,7 +13,7 @@
 class Db_Gear extends Gear {
     protected $name = 'Database';
     protected $description = 'Database operations management';
-    protected $order = -100;
+    protected $order = -1000;
     protected $driver;
     public static $error_codes = array(
         100 => 'Driver not found',
@@ -56,6 +56,17 @@ class Db_Gear extends Gear {
         $errors = $this->driver->getErrors();
         if(DEVELOPMENT && $errors){
             error(implode('<br/>',$errors),t('Database error','Database'));
+        }
+    }
+    /**
+     * Flush database tables cache
+     */
+    public function index($action = NULL){
+        if(!access_page('db debug')) return;
+        switch($action){
+            case 'flush':
+                $this->system_cache->removeTags('db.fields');
+                break;
         }
     }
     /**

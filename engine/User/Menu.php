@@ -10,11 +10,12 @@
  * @subpackage
  * @version		$Id$
  */
-class User_Menu extends Menu {
+class User_Menu extends Menu_Auto {
     /**
-     * Show menu
+     * Constructor
      */
-    public function output(){
-        echo $this->render('User.control_panel');
+    public function __construct() {
+        parent::__construct('user', 'User.menu');
+        hook('sidebar',array($this,'output'));
     }
 }

@@ -20,52 +20,47 @@ class Admin_Gear extends Gear {
      * Initializer
      */
     public function init() {
-        $cogear = getInstance();
-        $this->settings->theme = 'Admin_Theme';
         parent::init();
-        hook('menu.user_cp', array($this, 'hookControlPanel'));
     }
 
     /**
      * Add Control Panel to user panel
      */
-    public function hookControlPanel($cp) {
-        $cogear = getInstance();
-        if ($cogear->user->id && access('admin')) {
-            $cp->{Url::gear('admin')} = icon('cog') . ' ' . t('Control Panel');
+    public function menu($name, &$menu) {
+        switch ($name) {
+            case 'user':
+                if ($this->user->id && access('admin')) {
+                    $menu->{Url::gear('admin')} = t('Control Panel');
+                    $menu->{Url::gear('admin')}->order = 99;
+                }
+                break;
+            case 'admin':
+                $menu->{'dashboard'} = t('Dashboard');
+                break;
         }
     }
 
     /**
      * Dispatch request
      */
-    public function index($action = '', $subaction = 'index') {
-        $cogear = getInstance();
-        $args = $cogear->router->getArgs();
+    public function index() {
+        if(!access('admin')) return _403();
+        new Admin_Menu();
+        $args = $this->router->getArgs();
         $rev_args = array_reverse($args);
         $class = array();
-        $stop = FALSE;
-        Template::setGlobal('title',t('Control Panel'));
         while ($piece = array_pop($rev_args)) {
-                $class[] = $piece;
-                $gear = implode('_', $class);
-                if ($cogear->gears->$gear) {
-                    $callback = array($cogear->gears->$gear, 'admin');
-                    if (is_callable($callback)) {
-                        event('admin.gear.request',$cogear->gears->$gear);
-                        Template::setGlobal('title',$gear);
-                        $cogear->router->exec($callback, $rev_args);
-                        $stop = TRUE;
-                        break;
-                    }
+            $class[] = $piece;
+            $gear = implode('_', $class);
+            if ($this->gears->$gear) {
+                $callback = array($this->gears->$gear, 'admin');
+                if (is_callable($callback)) {
+                    event('admin.gear.request', $this->gears->$gear);
+                    Template::setGlobal('title', $gear);
+                    $this->router->exec($callback, $rev_args);
+                    break;
                 }
-        }
-        if ($stop)
-            return;
-        switch ($action) {
-            case 'clear':
-
-                break;
+            }
         }
     }
 

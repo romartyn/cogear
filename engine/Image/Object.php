@@ -6,7 +6,7 @@
  * @copyright		Copyright (c) 2011, Dmitriy Belyaev
  * @license		http://cogear.ru/license.html
  * @link		http://cogear.ru
- * @package		Core
+ * @package		Image
  * @subpackage
  * @version		$Id$
  */
@@ -18,9 +18,17 @@ class Image_Object extends Adapter {
      * @param string $file 
      */
     public function __construct($file) {
-        $this->file = $file;
+        $this->file = file_exists($file) ? $file : NULL;
         $driver = config('image.driver', 'Image_Adapter_GD');
         $this->adapter = file_exists($this->file) ? new $driver($this->file) : new Core_ArrayObject();
+    }
+    /**
+     * Get image file
+     * 
+     * @return string
+     */
+    public function getFile(){
+        return $this->file;
     }
     /**
      * Get image info by path 

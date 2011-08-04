@@ -34,7 +34,7 @@ class Form_Element_Abstract extends Options {
     protected $errors = array();
     protected $is_fetched;
     protected $wrapper = 'Form.element';
-    protected $code = '';
+    public $code = '';
     protected $is_ajaxed;
 
     /**
@@ -181,7 +181,6 @@ class Form_Element_Abstract extends Options {
         $this->attributes->class = $this->attributes->type . ' ' . $this->attributes->class;
         $this->attributes->required = $this->validators && $this->validators->findByValue('Required');
         $this->attributes->disabled OR $this->attributes->offsetUnset('disabled');
-        $this->attributes->checked OR $this->attributes->offsetUnset('checked');
         $this->attributes->form = $this->form;
         $this->attributes->element = $this;
         return $this->attributes;
@@ -193,6 +192,7 @@ class Form_Element_Abstract extends Options {
     public function render() {
         $this->code OR $this->code = HTML::input($this->getAttributes());
         $this->decorate();
+        event('Form.element.'.$this->type.'.render',$this);
         return $this->code;
     }
 
@@ -207,6 +207,7 @@ class Form_Element_Abstract extends Options {
             $tpl->form = $this->form;
             $tpl->code = $this->code;
             $this->code = $tpl->render();
+            event('Form.element.'.$this->type.'.decorate',$this->code);
         }
     }
 

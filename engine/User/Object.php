@@ -11,14 +11,20 @@
  * @subpackage
  * @version		$Id$
  */
-class User_Object extends Db_ORM {
+class User_Object extends Db_Item {
+    public $dir;
+    protected $template = 'User.list';
     /**
      * Constructor
      * 
      * @param   boolean $autoinit
      */
-    public function __construct() {
+    public function __construct($id = NULL) {
         parent::__construct('users');
+        if($id){
+            cogear()->db->where('id',$id);
+            $this->find();
+        }
     }
 
     /**
@@ -27,6 +33,7 @@ class User_Object extends Db_ORM {
     public function init() {
         if ($this->autologin()) {
             event('user.autologin', $this);
+            $this->dir = $this->dir();
         }
         // Set data for guest
         else {
@@ -62,7 +69,7 @@ class User_Object extends Db_ORM {
     public function store($data = NULL) {
         $cogear = getInstance();
         $data OR $data = $cogear->session->user;
-        $this->object($data);
+        $this->attach($data);
         $cogear->session->user = $this->object;
     }
     
@@ -173,6 +180,29 @@ class User_Object extends Db_ORM {
         return NULL;
     }
     /**
+     * Get HTML link to user profile
+     */
+    public function getLink(){
+        return HTML::a($this->getProfileLink(),$this->login);
+    }
+    /**
+     * Get HTML image avatar
+     *  
+     * @param string $preset
+     * @return string 
+     */
+    public function getAvatarImage($preset = 'avatar.small'){
+        return HTML::img(image_preset($preset,$this->getAvatar()->getFile(),TRUE),$this->login,array('class'=>'avatar'));
+    }
+    /**
+     * Get HTML avatar linked to profile
+     * 
+     * @return string
+     */
+    public function getAvatarLinked(){
+        return HTML::a($this->getProfileLink(),$this->getAvatarImage());
+    }
+    /**
      * Get user avatar
      * 
      * @return  User_Avatar
@@ -180,8 +210,8 @@ class User_Object extends Db_ORM {
     public function getAvatar(){
         if(!($this->avatar instanceof User_Avatar)){
             $this->avatar = new User_Avatar($this->avatar);
-            $this->avatar->setUser($this);
         }
+        $this->avatar->object OR $this->avatar->attach($this);
         return $this->avatar;
     }
     /**
@@ -193,16 +223,16 @@ class User_Object extends Db_ORM {
         $cogear = getInstance();
         $panel = new Stack('user.panel');
         $panel->avatar = $this->getAvatar();
-        $panel->login = HTML::a($this->getProfileLink(), $this->login, array('class'=>'implicit login   '));
+        $panel->login = HTML::a($this->getProfileLink(), $this->login, array('class'=>'implicit login'));
         if (access('user edit_all') OR $this->id == $cogear->user->id) {
-            $panel->edit = HTML::a(Url::gear('user') . $this->login . '/edit', icon('cog'));
+            $panel->edit = HTML::a(Url::gear('user') . 'edit/'.$this->id, t('[edit]'),array('class'=>'edit'));
         }
         return $panel->render();
     }
     /**
      * Get user upload directory
      */
-    public function getDir(){
-        return UPLOADS.DS.'users'.DS.$this->id.DS;
+    public function dir(){
+        return UPLOADS.DS.'users'.DS.$this->id;
     }
 }

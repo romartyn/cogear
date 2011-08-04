@@ -17,8 +17,7 @@ class Dev_Gear extends Gear {
 
     protected $name = 'Developer';
     protected $description = 'Calculate cogear performance at current system configuration.';
-    protected $type = Gear::CORE;
-    protected $order = -100;
+    protected $order = 0;
     /**
      * Benchmark points
      *
@@ -33,16 +32,22 @@ class Dev_Gear extends Gear {
         parent::init();
         $this->addPoint('system.begin');
         hook('done', array($this, 'finalPoint'));
-        hook('menu.user_cp', array($this, 'hookUserPanel'));
     }
 
     /**
      * Add benchmark info to user panel
      * 
+     * @param   string  $name 
      * @param object $cp 
      */
-    public function hookUserPanel($cp) {
-        $cp->{Url::gear('dev')} = icon('database-share', 'fugue') . t('Developer');
+    public function menu($name, &$cp) {
+//        if($this->user->id != 1) return;
+//        switch ($name) {
+//            case 'user':
+//                $cp->{Url::gear('dev')} =  t('Developer');
+//                $cp->{Url::gear('dev')}->order = 98;
+//                break;
+//        }
     }
 
     /**
@@ -68,7 +73,7 @@ class Dev_Gear extends Gear {
         if (!isset($this->points[$name])) {
             $this->points[$name] = array(
                 'time' => microtime() - IGNITE,
-                'memory' => memory_get_usage(TRUE),
+                'memory' => memory_get_usage(),
             );
         }
     }
