@@ -82,6 +82,8 @@ function autoload($class) {
 // Register with autoload
 spl_autoload_register('autoload');
 
+//Register exception handler
+set_exception_handler('Core_Exception::handler');
 $cogear = Cogear::getInstance();
 // Some root classes are needed to be preloaded
 $cogear->request = new Request();
