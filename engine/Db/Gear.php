@@ -37,7 +37,7 @@ class Db_Gear extends Gear {
             $config['database'] = trim($config['path'],'/');
             $driver = 'Db_Driver_'.  ucfirst($config['scheme']);
             if(!class_exists($driver)){
-                return Message::error(t('Database driver <b>%s</b> not found.','Database errors',ucfirst($config['scheme'])));
+               throw new Core_Exception(t('Database driver <b>%s</b> not found.','Database errors',ucfirst($config['scheme'])));
             }
             $this->driver = new $driver($config);
             $this->hook('done',array($this,'showErrors'));
@@ -45,7 +45,7 @@ class Db_Gear extends Gear {
             cogear()->db = $this->driver;
         }
         else {
-            die('Couldn\'t connect to database.');
+            throw new Core_Exception("Couldn't connect to database.");
         }
     }
 

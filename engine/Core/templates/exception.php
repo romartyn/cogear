@@ -163,7 +163,7 @@ function toggle(elem)
 
 	<h1>
 		<span class="code code-<?=strtolower($code)?>"><?//=$code ?></span>
-		<span class="message"><?=htmlspecialchars($message) ?></span>
+		<span class="message"><?=$message ?></span>
 	</h1>
     <?if(defined('DEVELOPMENT') && DEVELOPMENT):?>
 	<div id="<?=$error_id ?>" class="content">
