@@ -10,6 +10,8 @@ $error_id = uniqid('error');
 		padding:0;
 	}
 	#cogear_error {
+        width: 700px;
+        margin: 30px auto;
 		background: #fefefe;
 		font-size: 1em;
 		font-family: sans-serif;
@@ -160,9 +162,10 @@ function toggle(elem)
 <div id="cogear_error">
 
 	<h1>
-		<span class="type"><?=$type ?> [ <?=$code ?> ]:</span>
+		<span class="code code-<?=strtolower($code)?>"><?//=$code ?></span>
 		<span class="message"><?=htmlspecialchars($message) ?></span>
 	</h1>
+    <?if(defined('DEVELOPMENT') && DEVELOPMENT):?>
 	<div id="<?=$error_id ?>" class="content">
 		<p>
 			<span class="file"><?=Dev::path($file) ?> [ <?=$line ?> ]</span>
@@ -283,4 +286,5 @@ function toggle(elem)
 		</div>
 		<?php endforeach ?>
 	</div>
+    <?endif;?>
 </div>

@@ -19,6 +19,9 @@ class Db_Driver_Mysql extends Db_Driver_Abstract {
      * @return boolean
      */
     public function connect() {
+        if(!extension_loaded('mysql'))
+            throw new Core_Exception('MySQL extension not installed');
+        
         $this->connection = mysql_connect($this->config['host'] . ':' . $this->config['port'], $this->config['user'], $this->config['pass']);
         mysql_select_db($this->config['database']);
         $this->query('SET NAMES utf8;');
@@ -46,7 +49,7 @@ class Db_Driver_Mysql extends Db_Driver_Abstract {
         }
         self::start($query);
         if (!$this->result = mysql_query($query, $this->connection)) {
-            $this->silent OR $this->errors[] = mysql_errno();
+            $this->silent OR $this->errors[] = mysql_error($this->connection);//mysql_errno();
         }
         $this->clear();
         self::stop($query);

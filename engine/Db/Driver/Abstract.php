@@ -99,7 +99,7 @@ abstract class Db_Driver_Abstract extends Cogearable{
         try {
             $this->open();
         } catch (Db_Exception $e) {
-            Message::error($e->getMessage());
+            throw $e;
         }
     }
 

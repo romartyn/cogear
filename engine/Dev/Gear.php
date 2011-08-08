@@ -199,25 +199,31 @@ class Dev_Gear extends Gear {
                 return HTML::paired_tag('small','NULL');
 
             case is_float($var):
-                return HTML::paired_tag('small',t('float'));
+                return HTML::paired_tag('small','float');
 
             case is_bool($var):
-                return HTML::paired_tag('small',t('boolean')).HTML::paired_tag('span',(string)$var);
+                return HTML::paired_tag('small','boolean').HTML::paired_tag('span',(string)$var);
 
             case is_string($var):
                 //@todo need UTF8 encoding method in HTML class
-                return HTML::paired_tag('small',t('string')).HTML::paired_tag('span',htmlspecialchars($var,ENT_NOQUOTES));
+                return HTML::paired_tag('small','string').HTML::paired_tag('span',htmlspecialchars($var,ENT_NOQUOTES));
 
             case is_resource($var):
-                return HTML::paired_tag('small', t('resource')).HTML::paired_tag('span', get_resource_type($var));
+                return HTML::paired_tag('small', 'resource').HTML::paired_tag('span', get_resource_type($var));
 
             case is_array($var):
-                return HTML::paired_tag('small',t('array')).HTML::paired_tag('span','('.count($var).')').self::dumpArray($var);
+                return HTML::paired_tag('small','array').HTML::paired_tag('span','('.count($var).')').self::dumpArray($var);
+             case is_object($var):
+                return HTML::paired_tag('small','object').self::dumpObject($var);
         }
     }
 
     public static function dumpArray(array $array) {
+        return var_dump($array);
+    }
 
+    public static function dumpObject($obj) {
+        return var_dump($obj);
     }
     
     /**

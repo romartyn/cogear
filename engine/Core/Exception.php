@@ -47,21 +47,20 @@ class Core_Exception extends Exception
 	 * @param $line
 	 * @return string rendered HTML
 	 */
-	public static function display($trace, $type, $code, $message, $file, $line)
+	public static function display($trace, $code, $message, $file, $line)
 	{
 		try {
-			$tpl = new Template('Core.exception');
+            $tpl = new Template('Core.exception');
 
-			$tpl->trace = $trace;
-			$tpl->code = $code;
-			// Get the exception information
-			$tpl->type = $type;
-			$tpl->message = $message;
-			$tpl->file = $file;
-			$tpl->line = $line;
+            $tpl->trace = $trace;
+            $tpl->code = $code;
+            // Get the exception information
+            $tpl->message = $message;
+            $tpl->file = $file;
+            $tpl->line = $line;
 
-			// Include the exception HTML
-			echo $tpl->render();
+            // Include the exception HTML
+            return $tpl->render();
 		}
 		catch (Exception $e)
 		{
@@ -74,34 +73,26 @@ class Core_Exception extends Exception
 	}
 
 	/**
-	 * Handling incoming eceptions
+	 * Handling incoming Exceptions
 	 * @static
 	 * @param Exception $e
 	 * @return void
 	 */
 	public static function handler(Exception $e)
 	{
-        if(function_exists('error') && function_exists('t') && (cogear()->l18n instanceof Gear)) {
-            error(self::toString($e));
-        } else {
-            if(defined('DEVELOPMENT')) {
-                $trace = $e->getTrace();
-                $code = $e->getCode();
-                $type = get_class($e);
-                $message = $e->getMessage();
-                $file = $e->getFile();
-                $line = $e->getLine();
-                //$error = self::toString($e);
 
-                echo self::display($trace, $type, $code, $message, $file, $line);
-            } else {
-                echo self::toString($e);
-            }
-        }
+        $trace = $e->getTrace();
+        $code = $e->getCode();
+        $message = $e->getMessage();
+        $file = $e->getFile();
+        $line = $e->getLine();
+
+        echo self::display($trace, $code, $message, $file, $line);
+        exit(1);
 	}
 
 	/**
-	 * Handling incoming errors
+	 * Handling incoming Errors
 	 * @static
 	 * @param $code
 	 * @param $message
@@ -116,10 +107,6 @@ class Core_Exception extends Exception
             // disable error capturing to avoid recursive errors
             restore_error_handler();
             restore_exception_handler();
-
-            if(function_exists('error') && function_exists('t') && (cogear()->l18n instanceof Gear)) {
-                error(t('Error in file <b>%s</b> was found at line <b>%d</b>: <blockquote>%s</blockquote>','Errors',$file,$line,$message),t('Error'));
-            } else {
 
                 $trace = debug_backtrace();
 
@@ -146,16 +133,16 @@ class Core_Exception extends Exception
                     }
                 }
 
-                echo self::display($trace, 0, $code, $message, $file, $line);
-            }
+                echo self::display($trace, $code, $message, $file, $line);
+
 		}
 
-		return TRUE;
+		exit(1);
 	}
 
 	public function __toString()
 	{
-		self::toString($this);
+		return self::toString($this);
 	}
 
 

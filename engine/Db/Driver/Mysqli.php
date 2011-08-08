@@ -17,6 +17,9 @@ class Db_Driver_Mysqli extends Db_Driver_Mysql {
      * @return boolean
      */
     public function connect() {
+        if(!extension_loaded('mysqli'))
+            throw new Core_Exception('MySQLi extension not installed');
+
         $this->connection = mysqli_connect($this->config['host'] . ':' . $this->config['port'], $this->config['user'], $this->config['pass']);
         mysqli_select_db($this->connection,$this->config['database']);
         $this->query('SET NAMES utf8;');
@@ -44,7 +47,7 @@ class Db_Driver_Mysqli extends Db_Driver_Mysql {
         }
         self::start($query);
         if (!$this->result = mysqli_query($this->connection,$query)) {
-            $this->silent OR $this->errors[] = mysqli_errno($this->connection);
+            $this->silent OR $this->errors[] = mysql_error($this->connection);//mysqli_errno($this->connection);
         }
         $this->clear();
         self::stop($query);
