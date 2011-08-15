@@ -137,22 +137,6 @@ class Dev_Gear extends Gear {
         return $microtime;
     }
 
-    /**
-     * Beatiful styling of vars
-     * @static
-     */
-    public static function varDump() {
-        $args = func_get_args();
-
-        if(count($args))
-            return;
-        $out = '';
-        foreach($args as $var) {
-            $out .= self::_dump($var)."\n";
-        }
-        return HTML::paired_tag('pre', $out, array('class'=>'var-dump'));
-    }
-
 	/**
      * Protect full paths, replacing them to constants
 	 *     // Displays ENGINE/Core/Cogear.php
@@ -164,27 +148,41 @@ class Dev_Gear extends Gear {
 	public static function path($file)
 	{
 		if (strpos($file, SITES) === 0)
-		{
 			$file = 'SITES'.substr($file, strlen(SITES));
-		}
 		elseif (strpos($file, ENGINE) === 0)
-		{
 			$file = 'ENGINE'.substr($file, strlen(ENGINE));
-		}
 		elseif (strpos($file, GEARS_FOLDER) === 0)
-		{
 			$file = 'GEARS'.substr($file, strlen(GEARS_FOLDER));
-		}
 		elseif (strpos($file, ROOT) === 0)
-		{
 			$file = 'ROOT'.substr($file, strlen(ROOT));
-		}
 
 		return $file;
 	}
 
-    public static function dump($var) {
-        return self::_dump($var);
+    public static function dump($var,$name='...') {
+
+        $template = new Template('Dev.dump');
+
+
+        $backtace = debug_backtrace();
+        $template->call = '<span class="backtrace-call" style="white-space:nowrap;">
+			Called from <code>'.self::path($backtace['file']).'</code>,
+				line <code>'.$backtace['line'].'</code></span>';
+
+        $template->dump = self::_dump($var,$name);
+
+		$_recursion_marker = self::_recursion_marker();
+		if ($hive =& self::_hive($dummy)) {
+			foreach($hive as $i=>$bee){
+				if (is_object($bee)) {
+					unset($hive[$i]->$_recursion_marker);
+					} else {
+					unset($hive[$i][$_recursion_marker]);
+					}
+				}
+			}
+
+        return $template->render();
     }
 
     /**
@@ -193,37 +191,169 @@ class Dev_Gear extends Gear {
      * @param $var
      * @return string
      */
-    protected static function _dump($var) {
+    protected static function _dump($var, $name='...') {
+        $template = new Template('Dev.dump_type');
+        $template->name = $name;
         switch($var) {
             case is_null($var):
-                return HTML::paired_tag('small','NULL');
+                $template->type = 'NULL';
+                $template->type_class = 'null';
+                $template->element = '( NULL )';
+                break;
 
             case is_float($var):
-                return HTML::paired_tag('small','float');
+                $template->type = 'Float';
+                $template->type_class = 'float';
+                $template->element = $var;
+                break;
+
+            case is_integer($var):
+                $template->type = 'Integer';
+                $template->type_class = 'integer';
+                $template->element = $var;
+                break;
 
             case is_bool($var):
-                return HTML::paired_tag('small','boolean').HTML::paired_tag('span',(string)$var);
+                $template->type = 'Boolean';
+                $template->type_class = 'bool';
+                $template->element = $var ? 'TRUE':'FALSE';
+                break;
 
             case is_string($var):
-                //@todo need UTF8 encoding method in HTML class
-                return HTML::paired_tag('small','string').HTML::paired_tag('span',htmlspecialchars($var,ENT_NOQUOTES));
+                $template->type = 'String';
+                $template->type_class = 'string';
+                $template->element = $var;
+                break;
 
             case is_resource($var):
-                return HTML::paired_tag('small', 'resource').HTML::paired_tag('span', get_resource_type($var));
+                $template->type = 'Resource';
+                $template->type_class = 'resource';
+                $template->element = '( '.get_resource_type($var).' )';
+                break;
 
             case is_array($var):
-                return HTML::paired_tag('small','array').HTML::paired_tag('span','('.count($var).')').self::dumpArray($var);
-             case is_object($var):
-                return HTML::paired_tag('small','object').self::dumpObject($var);
+                $template->type = 'Array';
+                $template->type_class = 'array';
+                $template->element = '( '.count($var).' )';
+                if(count($var)) $template->dump =& self::_vars($var);
+                break;
+
+            case is_object($var):
+                $template->type = 'Object';
+                $template->type_class = 'object';
+                $template->element = '( '.get_class($var).' )';
+                if(count($var)) $template->dump =& self::_vars($var);
+                break;
+
+            default:
+                $template->type = 'Undefinied';
+                $template->type_class = 'undefinied';
+                $template->element = 'undefinied';
+                break;
+
         }
+
+        return $template->render();
     }
 
-    public static function dumpArray(array $array) {
-        return var_dump($array);
+    /**
+     * Process vars and nested rendering
+     * @static
+     * @param $data
+     * @return string
+     */
+    private static function _vars($data){
+
+		$_is_object = is_object($data);
+
+		$_recursion_marker = self::_recursion_marker();
+		$_r = (integer) ($_is_object) ? @$data->$_recursion_marker : @$data[$_recursion_marker];
+
+		if ($_r > 0) return self::_recursion();
+
+		self::_hive($data);
+
+        $template = new Template('Dev.dump_nest');
+        $template->elements = '';
+        
+        $keys = ($_is_object) ? array_keys(get_object_vars($data)) : array_keys($data);
+
+	foreach($keys as $k) {
+
+		// skip marker
+		//
+		if ($k === $_recursion_marker) {
+			continue;
+			}
+
+		// get real value
+		//
+		if ($_is_object) {
+			$v =& $data->$k;
+			} else {
+			$v =& $data[$k];
+			}
+
+		$template->elements .= self::_dump($v,$k);
+	}
+
+//        foreach($keys as $k) {
+//
+//            if ($k === $_recursion_marker) continue;
+//
+//            if ($_is_object){
+//
+//                //isset($data->$k) ? $v =& $data->$k : NULL;
+//                if(isset($data->$k))
+//                    $v =& $data->$k;
+//                else
+//                    continue;
+//            }else
+//                if(isset($data[$k]))
+//                    $v =& $data[$k];
+//                else
+//                    continue;
+//
+//
+//        }
+        
+        return $template->render();
+	}
+
+    private static function _recursion() {
+        return 'recursion';
     }
 
-    public static function dumpObject($obj) {
-        return var_dump($obj);
+    private static function _recursion_marker() {
+        static $_recursion_marker;
+        if (!isset($_recursion_marker))
+            $_recursion_marker = uniqid('cogear');
+
+        return $_recursion_marker;
+    }
+
+    private static function &_hive(&$bee) {
+        static $_ = array();
+
+        if (!is_null($bee)) {
+            $_recursion_marker = self::_recursion_marker();
+            (is_object($bee)) ? @($bee->$_recursion_marker++) : @($bee[$_recursion_marker]++);
+
+            $_[0][] =& $bee;
+            }
+
+        return $_[0];
+    }
+
+    /**
+     * Renders all environment variables
+     * $_SERVER, $_GET\POST, Gears loaded, Includet files
+     * @static
+     * @return void
+     */
+    public static function environment() {
+        $template = new Template('Dev.dump_env');
+        return $template->render();
     }
     
     /**
@@ -267,7 +397,6 @@ class Dev_Gear extends Gear {
 			{
 				// Make the row safe for output
 				$row = htmlspecialchars($row, ENT_NOQUOTES);
-
 				// Trim whitespace and sanitize the row
 				$row = '<span class="number">'.sprintf($format, $line).'</span> '.$row;
 
