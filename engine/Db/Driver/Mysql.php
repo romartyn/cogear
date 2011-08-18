@@ -19,9 +19,6 @@ class Db_Driver_Mysql extends Db_Driver_Abstract {
      * @return boolean
      */
     public function connect() {
-        if(!extension_loaded('mysql'))
-            throw new Core_Exception('MySQL extension not installed');
-        
         $this->connection = mysql_connect($this->config['host'] . ':' . $this->config['port'], $this->config['user'], $this->config['pass']);
         mysql_select_db($this->config['database']);
         $this->query('SET NAMES utf8;');
@@ -102,7 +99,7 @@ class Db_Driver_Mysql extends Db_Driver_Abstract {
         $group && $query[] = ' GROUP BY ' . implode(', ', $group);
         $having && $query[] = ' HAVING ' . implode(', ', $having);
         $order && $query[] = ' ORDER BY ' . implode(', ', $order);
-        $limit && $limit[0] && $query[] = ' LIMIT ' . $limit[0] . ($limit[1] ? ', ' . $limit[1] : '');
+        $limit && isset($limit[0]) && $query[] = ' LIMIT ' . $limit[0] . ($limit[1] ? ', ' . $limit[1] : '');
         return $this->query = implode($query);
     }
 
