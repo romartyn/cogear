@@ -5,8 +5,8 @@ return array(
     'elements' => array(
         'name' => array(
             'type' => 'text',
-            'label' => t('Name'),
-            'description' => t('Provide name of the page.'),
+            'label' => t('Title'),
+            'description' => t('Provide title of the page.'),
             'validators' => array(array('Length', 3), 'Required'),
         ),
         'body' => array(

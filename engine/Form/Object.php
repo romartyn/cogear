@@ -35,6 +35,7 @@ class Form_Object extends Object {
         'text' => 'Form_Element_Input',
         'password' => 'Form_Element_Password',
         'textarea' => 'Form_Element_Textarea',
+        'hidden' => 'Form_Element_Hidden',
         'radio' => 'Form_Element_Radio',
         'checkbox' => 'Form_Element_Checkbox',
         'select' => 'Form_Element_Select',
@@ -98,7 +99,7 @@ class Form_Object extends Object {
         if (isset(self::$types[$config->type]) && class_exists(self::$types[$config->type])) {
             $this->elements->$name = new self::$types[$config->type]($config);
         } else {
-            unset($this->elements->$name);
+            $this->elements->offsetUnset($name);
         }
     }
 
@@ -133,11 +134,11 @@ class Form_Object extends Object {
      * @param object $data 
      */
     public function attach($data) {
-        $data && $this->setValues($data);
         parent::attach($data);
-        event('form.attach',$this);
         event('form.'.$this->name.'.attach',$this);
+        event('form.attach',$this);
         $this->init();
+        $this->setValues($data);
     }
 
     /**
@@ -147,7 +148,7 @@ class Form_Object extends Object {
      */
     public function setValues($data) {
         foreach ($data as $key => $value) {
-            $this->elements->$key && $this->elements->$key->value = $value;
+            $this->elements->$key && $this->elements->$key->setValue($value);
         }
     }
 
