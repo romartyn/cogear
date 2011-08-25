@@ -141,12 +141,12 @@ class Core_ArrayObject extends ArrayObject {
     }
 
     /**
-     * Detelte by offset
+     * Delete by offset
      * 
      * @param string $name 
      */
     public function __unset($name) {
-        $this->offsetUnset($name);
+            $this->offsetUnset($name);
     }
 
     /**

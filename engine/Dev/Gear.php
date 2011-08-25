@@ -155,100 +155,134 @@ class Dev_Gear extends Gear {
 			$file = 'GEARS'.substr($file, strlen(GEARS_FOLDER));
 		elseif (strpos($file, ROOT) === 0)
 			$file = 'ROOT'.substr($file, strlen(ROOT));
-
+        
 		return $file;
 	}
 
-    public static function dump($var,$name='...') {
+    /**
+     * Dumper with cool render
+     * @static
+     * @param $var
+     * @param string $name
+     * @return
+     */
+    public static function dump($var, $name='...') {
 
         $template = new Template('Dev.dump');
 
-
-        $backtace = debug_backtrace();
-        $template->call = '<span class="backtrace-call" style="white-space:nowrap;">
-			Called from <code>'.self::path($backtace['file']).'</code>,
-				line <code>'.$backtace['line'].'</code></span>';
-
-        $template->dump = self::_dump($var,$name);
-
-		$_recursion_marker = self::_recursion_marker();
-		if ($hive =& self::_hive($dummy)) {
-			foreach($hive as $i=>$bee){
-				if (is_object($bee)) {
-					unset($hive[$i]->$_recursion_marker);
-					} else {
-					unset($hive[$i][$_recursion_marker]);
-					}
-				}
-			}
+        $template->dump = self::_dumpVar($var, $name);
 
         return $template->render();
     }
 
     /**
-     * Detects $var type and render it
+     * Dump Object or Array with nested elements
      * @static
      * @param $var
+     * @param null $name
+     * @param bool $isObject
+     * @return
+     */
+    protected function _dumpObject($var, $name = null, $isObject = false) {
+
+        $template = new Template('Dev.dump-nested');
+
+        if(is_object($var)) $var = (array)$var;
+
+        if(is_array($var)) {
+            $template->elements = '';
+            foreach ($var as $field => $value) {
+                if ($field == 'referenceFlag') continue;
+
+                if(!empty($value))
+                    $template->elements .= self::_dumpVar($value, $field);
+
+                // Check for references.
+                if (is_array($value) && isset($value['referenceFlag'])) {
+                    $value['referenceFlag'] = TRUE;
+                }
+                // Check for references to prevent errors from recursions.
+                if (is_array($value) && isset($value['referenceFlag']) && !$value['referenceFlag']) {
+                    $value['referenceFlag'] = false;
+                    $template->elements .= self::_dumpObject($value, $name);
+                }
+                elseif (is_object($value)) {
+                    $value->referenceFlag = false;
+                    $template->elements .= self::_dumpObject((array)$value, $name, true);
+                }
+            }
+        }
+
+        return $template->render();
+    }
+    
+    /**
+     * Dump $var type and render it
+     * @static
+     * @param $var
+     * @param $name
      * @return string
      */
-    protected static function _dump($var, $name='...') {
-        $template = new Template('Dev.dump_type');
-        $template->name = $name;
+    protected static function _dumpVar($var, $name) {
+        $template = new Template('Dev.dump-element');
+        $template->elementname = $name;
         switch($var) {
             case is_null($var):
                 $template->type = 'NULL';
                 $template->type_class = 'null';
-                $template->element = '( NULL )';
+                $template->value = '{empty}';
                 break;
 
             case is_float($var):
                 $template->type = 'Float';
                 $template->type_class = 'float';
-                $template->element = $var;
+
+                $template->value = (strlen((string)$var) === 0) ? '{empty}':(string)$var;
                 break;
 
             case is_integer($var):
                 $template->type = 'Integer';
                 $template->type_class = 'integer';
-                $template->element = $var;
+                $template->value = (strlen((string)$var) === 0) ? '{empty}':(string)$var;
                 break;
 
             case is_bool($var):
                 $template->type = 'Boolean';
                 $template->type_class = 'bool';
-                $template->element = $var ? 'TRUE':'FALSE';
+                $template->value = $var ? 'TRUE':'FALSE';
                 break;
 
             case is_string($var):
                 $template->type = 'String';
                 $template->type_class = 'string';
-                $template->element = $var;
+                    $var = self::path($var); //if string contains path convert it;
+                $template->value = (strlen($var) === 0) ? '{empty}':$var;
                 break;
 
             case is_resource($var):
                 $template->type = 'Resource';
                 $template->type_class = 'resource';
-                $template->element = '( '.get_resource_type($var).' )';
+                $template->value = get_resource_type($var);
                 break;
 
             case is_array($var):
                 $template->type = 'Array';
                 $template->type_class = 'array';
-                $template->element = '( '.count($var).' )';
-                if(count($var)) $template->dump =& self::_vars($var);
+                $template->value = count($var)." Elements";
+                if(count($var)) $template->dump = self::_dumpObject($var, $name);
                 break;
 
             case is_object($var):
                 $template->type = 'Object';
                 $template->type_class = 'object';
-                $template->element = '( '.get_class($var).' )';
-                if(count($var)) $template->dump =& self::_vars($var);
+                $template->value = get_class($var) ." ".count((array)$var)." Elements";;
+                if(count((array)$var)) $template->dump = self::_dumpObject($var, $name);
                 break;
 
             default:
                 $template->type = 'Undefinied';
                 $template->type_class = 'undefinied';
-                $template->element = 'undefinied';
+                $template->value = 'undefinied';
                 break;
 
         }
@@ -257,102 +291,19 @@ class Dev_Gear extends Gear {
     }
 
     /**
-     * Process vars and nested rendering
-     * @static
-     * @param $data
-     * @return string
-     */
-    private static function _vars($data){
-
-		$_is_object = is_object($data);
-
-		$_recursion_marker = self::_recursion_marker();
-		$_r = (integer) ($_is_object) ? @$data->$_recursion_marker : @$data[$_recursion_marker];
-
-		if ($_r > 0) return self::_recursion();
-
-		self::_hive($data);
-
-        $template = new Template('Dev.dump_nest');
-        $template->elements = '';
-        
-        $keys = ($_is_object) ? array_keys(get_object_vars($data)) : array_keys($data);
-
-	foreach($keys as $k) {
-
-		// skip marker
-		//
-		if ($k === $_recursion_marker) {
-			continue;
-			}
-
-		// get real value
-		//
-		if ($_is_object) {
-			$v =& $data->$k;
-			} else {
-			$v =& $data[$k];
-			}
-
-		$template->elements .= self::_dump($v,$k);
-	}
-
-//        foreach($keys as $k) {
-//
-//            if ($k === $_recursion_marker) continue;
-//
-//            if ($_is_object){
-//
-//                //isset($data->$k) ? $v =& $data->$k : NULL;
-//                if(isset($data->$k))
-//                    $v =& $data->$k;
-//                else
-//                    continue;
-//            }else
-//                if(isset($data[$k]))
-//                    $v =& $data[$k];
-//                else
-//                    continue;
-//
-//
-//        }
-        
-        return $template->render();
-	}
-
-    private static function _recursion() {
-        return 'recursion';
-    }
-
-    private static function _recursion_marker() {
-        static $_recursion_marker;
-        if (!isset($_recursion_marker))
-            $_recursion_marker = uniqid('cogear');
-
-        return $_recursion_marker;
-    }
-
-    private static function &_hive(&$bee) {
-        static $_ = array();
-
-        if (!is_null($bee)) {
-            $_recursion_marker = self::_recursion_marker();
-            (is_object($bee)) ? @($bee->$_recursion_marker++) : @($bee[$_recursion_marker]++);
-
-            $_[0][] =& $bee;
-            }
-
-        return $_[0];
-    }
-
-    /**
      * Renders all environment variables
-     * $_SERVER, $_GET\POST, Gears loaded, Includet files
+     * $_SERVER, $_GET\POST, Gears loaded, Included files
      * @static
      * @return void
      */
     public static function environment() {
-        $template = new Template('Dev.dump_env');
+        $template = new Template('Dev.dump-enviroment');
+        
+        $template->included =   get_included_files();
+        $template->extensions = get_loaded_extensions();
+        $template->gears =      cogear()->gears;
+        $template->events =     cogear()->events;
+
         return $template->render();
     }
     
