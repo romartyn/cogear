@@ -168,9 +168,18 @@ class Dev_Gear extends Gear {
      */
     public static function dump($var, $name='...') {
 
+        static $assetsPrinted = false;
+
         $template = new Template('Dev.dump');
+        
+        $template->assets = $assetsPrinted;
+        if(!$assetsPrinted)
+            $assetsPrinted = true;
+        
+
 
         $template->dump = self::_dumpVar($var, $name);
+
 
         return $template->render();
     }
@@ -183,7 +192,7 @@ class Dev_Gear extends Gear {
      * @param bool $isObject
      * @return
      */
-    protected function _dumpObject($var, $name = null, $isObject = false) {
+    protected static function _dumpObject($var, $name = null) {
 
         $template = new Template('Dev.dump-nested');
 
@@ -269,14 +278,14 @@ class Dev_Gear extends Gear {
                 $template->type = 'Array';
                 $template->type_class = 'array';
                 $template->value = count($var)." Elements";
-                if(count($var)) $template->dump = self::_dumpObject($var, $name);
+                if(count($var) && !empty($var)) $template->dump = self::_dumpObject($var, $name);
                 break;
 
             case is_object($var):
                 $template->type = 'Object';
                 $template->type_class = 'object';
                 $template->value = get_class($var) ." ".count((array)$var)." Elements";;
-                if(count((array)$var)) $template->dump = self::_dumpObject($var, $name);
+                if(count((array)$var) && !empty($var)) $template->dump = self::_dumpObject($var, $name);
                 break;
 
             default:
@@ -340,6 +349,7 @@ class Dev_Gear extends Gear {
 		$source = '';
 		while (($row = fgets($file)) !== FALSE)
 		{
+
 			// Increment the line number
 			if (++$line > $range['end'])
 				break;
